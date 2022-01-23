@@ -27,8 +27,8 @@ async function verifyToken(req, res, next) {
     if (req.headers?.authorization?.startsWith('Bearer ')) {
         const idToken = req.headers.authorization.split('Bearer ')[1];
         try {
-            const decodeUser = await admin.auth().verifyIdToken(idToken);
-            console.log('email', decodeUser.email)
+            const decodedUser = await admin.auth().verifyIdToken(idToken);
+            console.log(decodedUser.email)
         }
         catch {
 
@@ -42,16 +42,20 @@ async function run() {
         await client.connect();
         const database = client.db('blogDB');
         const blogsCollection = database.collection('blogs');
-        const usersCollection=database.collection('users');
+        const usersCollection = database.collection('users');
 
         app.post('/blogs', verifyToken, async (req, res) => {
             const blogTitle = req.body.blogTitle;
             const article = req.body.article;
+            const blogerName = req.body.blogerName;
+            const blogerEmail = req.body.blogerEmail;
             const pic = req.files.blogImage;
             const picData = pic.data;
             const encodedPic = picData.toString('base64');
             const imageBuffer = Buffer.from(encodedPic, 'base64');
             const blog = {
+                blogerName,
+                blogerEmail,
                 blogTitle,
                 article,
                 blogImage: imageBuffer
@@ -61,10 +65,16 @@ async function run() {
             res.json(result);
         })
 
-        app.post('/users', async(req,res)=>{
+        app.post('/users', async (req, res) => {
             const user = req.body;
             const result = await usersCollection.insertOne(user);
             res.json(result);
+        })
+
+        app.get('/blogs', async (req, res) => {
+            const cursor = blogsCollection.find({});
+            const blogs = await cursor.toArray();
+            res.json(blogs);
         })
 
 
